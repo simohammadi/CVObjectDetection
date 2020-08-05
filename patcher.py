@@ -12,7 +12,6 @@ class patcher:
     #remeber that path can go to either image or dir
     #Last change is dir_name = none
     def __init__(self, path, patch_dim, dir_name = None, gen_data=None):
-        print(gen_data)
         if gen_data == None:
             [self.patches, self.names] = self.patch_single_img(path, patch_dim, dir_name)
         else:
@@ -56,7 +55,7 @@ class patcher:
             #TODO do we need this for single image
             patches.append(patch)
         
-            self.save_patch(patch, name, dir_name)
+            #self.save_patch(patch, name, dir_name)
     
         return patches, names
             
