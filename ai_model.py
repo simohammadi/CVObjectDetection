@@ -1,4 +1,9 @@
 #Modules
+
+import os
+#Disable tensorflow warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 from model_trainer import model_trainer 
 from preproc_cable import preproc_cable
 from preproc_transition import preproc_transition
@@ -7,69 +12,64 @@ from spacer_cropper import spacer_cropper
 from tester import tester
 from predictor import predictor
 
-import os
 from keras.models import load_model
 import cv2 as cv
+import sys
 
 class ai_model:
 
-    def __init__(self, mode):
-        path_trans = "/home/sina/Documents/abb/patches/with_transitions/*"
-        path_non_trans = "/home/sina/Documents/abb/patches/no_transition/*"
-        path_img_trans = "/home/sina/Documents/abb/transition_pictures/with_spacer/good_candidate/DSC_4762.jpg"
-        #self.transition_trainer(path_trans, path_non_trans)
-        #self.tester("finetuned.h5", "test_data/*", (150,150), "trans")
-        #self.tester("finetuned_cablecable.h5", "train_data_comp/*.jpg", (460, 460), None)
-        #self.classify("finetuned.h5", path_img_trans, 150, "trans")
-        #self.classify("finetuned_cablecable.h5", path_img_trans, 460, None)
+    name = str()
 
-    
-    def trainer(self, mode):
-        NotImplemented
-        #TODO write trainer
-    
-    def transition_trainer(self, path_trans_files, non_trans_files_path):
-        dir_name = "trans_patches"
-        patch_dim = [150,150]
-        patcher_trans = patcher(path_trans_files, patch_dim, dir_name, gen_data=True)
-        dir_name = "non_trans_patches"
-        patcher_non_trans = patcher(non_trans_files_path, patch_dim, dir_name, gen_data=True)
-        preproc = preproc_transition(path_trans_files, non_trans_files_path)
-        mode = "finetune_transferlearning"
-        name = "test"
-        input_shape = patch_dim + [3]
-        model = model_trainer(mode, preproc.train_imgs, preproc.validation_imgs, preproc.encoded_train_label, preproc.encoded_val_label, input_shape, name)
-        model.plot(model.history)
-    
-    #TODO component trainer needs softmax function and so on
-    def component_trainer(self, dir_files):
-        preproc = preproc_cable(dir_files)
-        input_shape = preproc.images[0].shape
-        mode = "finetune_transferlearning"
-        model = model_trainer()
-    
-    #TODO fix object oriented code
-    def tester(self,path_to_model, path_to_imgs, img_dim, mode):
-        if(mode == "trans"):
-            self.test_trans(path_to_model, path_to_imgs, img_dim)
-        else:
-            self.test_comp(path_to_model, path_to_imgs, img_dim)
-    
-    #TODO check is path_to_imgs always the same
-    def test_trans(self, path_to_model, path_to_imgs, patch_dim):
-        t = tester(path_to_model, "trans", path_to_imgs, patch_dim)
-    
-    def test_comp(self, path_to_model, path_to_imgs, img_dim):
-        t = tester(path_to_model, None, path_to_imgs, img_dim)
+    def __init__(self,mode, path_to_model_trans, path_to_model_comp, path_to_img):
+        self.classify(path_to_model_trans, path_to_img, 150, "trans")
+        res = self.classify(path_to_model_comp, path_to_img, 460, None)
+        if (mode == "comp"):
+            print(self.decoder(res)[2])
+        elif(mode == "trans"):
+            print(self.decoder(res)[0], self.decoder(res)[1])
 
     def classify(self, model_path, img_path, img_dim, mode):
         p = predictor(model_path, img_path, img_dim, mode)
-        print(p.res)
-         
-        
+        return p.res
+
+    def decoder(self, res):
+        human_res = list()
+        if(res[0] > 0):
+            human_res.append("transition top")
+        else:
+            human_res.append("no transition top")
+        if (res[1] > 0):
+            human_res.append("transition bot")
+        else:
+            human_res.append("no transition bot")
+        if(res[2] == 0):
+            human_res.append("8 components")
+        elif(res[2] == 1):
+            human_res.append("9 components")
+        elif(res[2] == 2):
+            human_res.append("12 components")
+        elif(res[2] == 3):
+            human_res.append("22 components")
+        return human_res
+             
 def main():
-    am = ai_model("test")
+    if(len(sys.argv) == 5):
+        path_to_model_trans = sys.argv[1]
+        path_to_model_comp = sys.argv[2]
+        path_to_img = sys.argv[3]
+        mode = sys.argv[4]
+        am = ai_model(path_to_model_trans, path_to_model_comp, path_to_img)
+    elif(len(sys.argv) == 3):
+        path_to_model_trans = "finetuned_trans.h5"
+        path_to_model_comp = "finetuned_cablecable.h5"
+        path_to_img = sys.argv[1]
+        mode = sys.argv[2]
+        am = ai_model(mode,path_to_model_trans, path_to_model_comp, path_to_img)
+    else:
+        print("Something went wrong")
+    
+    
+        
 
 if __name__ == "__main__":
     main()
-
