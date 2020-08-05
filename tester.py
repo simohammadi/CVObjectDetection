@@ -9,14 +9,16 @@ from spacer_cropper import spacer_cropper
 import matplotlib.pyplot as plt
 import natsort
 
+import sys
+
 class tester:
 
     model = None
     #TODO pass labels from preproc_cable or use labeling in filename
-    def __init__(self, path, mode, path_to_imgs, IMG_DIM):
+    def __init__(self, path, mode, path_to_imgs, IMG_DIM, path_to_labels):
         
         num2class_label_trans = lambda l: ["trans" if x==1 else "not_trans" for x in l]
-        class2num_label_trans = lambda l: [1 if x=="trans" else 0 for x in l]
+        #class2num_label_trans = lambda l: [1 if x=="trans" else 0 for x in l] / not used 
         
         self.model = load_model(path)
         
@@ -32,12 +34,11 @@ class tester:
             files = sorted(self.read_files(path_to_imgs))
             files = natsort.natsorted(files, reverse = False)
             imgs = self.get_scaled_imgs(files, IMG_DIM)
-            labels = self.read_labels_comp()
+            labels = self.read_labels_comp(path_to_labels)
             predictions = self.predict(imgs)
             self.plot(labels, predictions)
     #TODO fix such that you dont hav to change filename
-    def read_labels_comp(self):
-        filename = "test_data_comp/labels.txt"
+    def read_labels_comp(self, filename):
         with open(filename , "r") as read:
             labels = read.read()
         labels = str(labels)[1:-1]
@@ -92,7 +93,7 @@ class tester:
 
 
 def main():
-    #t = tester("finetuned.h5", "trans", "test_data/*", (150,150))
-    t = tester("finetuned_cablecable.h5", None, "test_data_comp/*.jpg", (460, 460))
+    mt = tester(sys.argv[1], None, sys.argv[2], (432, 432), sys.argv[3])
+
 if __name__ == "__main__":
     main()
